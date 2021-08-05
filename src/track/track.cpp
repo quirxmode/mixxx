@@ -328,6 +328,16 @@ void Track::setReplayGain(const mixxx::ReplayGain& replayGain) {
     }
 }
 
+void Track::adjustReplayGainFromPregain(double gain) {
+    QMutexLocker lock(&m_qMutex);
+    mixxx::ReplayGain replayGain = m_record.getMetadata().getTrackInfo().getReplayGain();
+    replayGain.setRatio(gain * replayGain.getRatio());
+    if (compareAndSet(m_record.refMetadata().refTrackInfo().ptrReplayGain(), replayGain)) {
+        markDirtyAndUnlock(&lock);
+        emit replayGainAdjusted(replayGain);
+    }
+}
+
 mixxx::Bpm Track::getBpmWhileLocked() const {
     // BPM values must be synchronized at all times!
     DEBUG_ASSERT(m_record.getMetadata().getTrackInfo().getBpm() == getBeatsPointerBpm(m_pBeats));
@@ -932,6 +942,13 @@ CuePointer Track::createAndAddCue(
         int hotCueIndex,
         mixxx::audio::FramePos startPosition,
         mixxx::audio::FramePos endPosition) {
+    VERIFY_OR_DEBUG_ASSERT(hotCueIndex == Cue::kNoHotCue ||
+            hotCueIndex >= mixxx::kFirstHotCueIndex) {
+        return CuePointer{};
+    }
+    VERIFY_OR_DEBUG_ASSERT(startPosition.isValid() || endPosition.isValid()) {
+        return CuePointer{};
+    }
     CuePointer pCue(new Cue(
             type,
             hotCueIndex,
