@@ -101,9 +101,11 @@ class EngineBuffer : public EngineObject {
     /// Returns the BPM of the loaded track around the current position (not thread-safe)
     mixxx::Bpm getLocalBpm() const;
     /// Sets a beatloop for the loaded track (not thread safe)
-    void setBeatLoop(double startPosition, bool enabled);
+    void setBeatLoop(mixxx::audio::FramePos startPosition, bool enabled);
     /// Sets a loop for the loaded track (not thread safe)
-    void setLoop(double startPosition, double endPositon, bool enabled);
+    void setLoop(mixxx::audio::FramePos startPosition,
+            mixxx::audio::FramePos endPositon,
+            bool enabled);
     // Sets pointer to other engine buffer/channel
     void setEngineMaster(EngineMaster*);
 
@@ -228,7 +230,11 @@ class EngineBuffer : public EngineObject {
 
     void processSyncRequests();
     void processSeek(bool paused);
-
+    // For debugging / testing -- returns true if the previous buffer call resulted in a seek.
+    FRIEND_TEST(EngineSyncTest, FollowerUserTweakPreservedInSyncDisable);
+    bool previousBufferSeek() const {
+        return m_previousBufferSeek;
+    }
     bool updateIndicatorsAndModifyPlay(bool newPlay, bool oldPlay);
     void verifyPlay();
     void notifyTrackLoaded(TrackPointer pNewTrack, TrackPointer pOldTrack);
@@ -244,14 +250,10 @@ class EngineBuffer : public EngineObject {
 
     friend class CueControlTest;
     friend class HotcueControlTest;
+    friend class LoopingControlTest;
 
     LoopingControl* m_pLoopingControl; // used for testes
     FRIEND_TEST(LoopingControlTest, LoopScale_HalvesLoop);
-    FRIEND_TEST(LoopingControlTest, LoopMoveTest);
-    FRIEND_TEST(LoopingControlTest, LoopResizeSeek);
-    FRIEND_TEST(LoopingControlTest, ReloopToggleButton_DoesNotJumpAhead);
-    FRIEND_TEST(LoopingControlTest, ReloopAndStopButton);
-    FRIEND_TEST(LoopingControlTest, Beatjump_JumpsByBeats);
     FRIEND_TEST(SyncControlTest, TestDetermineBpmMultiplier);
     FRIEND_TEST(EngineSyncTest, HalfDoubleBpmTest);
     FRIEND_TEST(EngineSyncTest, HalfDoubleThenPlay);
@@ -389,6 +391,7 @@ class EngineBuffer : public EngineObject {
     QAtomicInt m_iEnableSyncQueued;
     QAtomicInt m_iSyncModeQueued;
     ControlValueAtomic<QueuedSeek> m_queuedSeek;
+    bool m_previousBufferSeek = false;
 
     /// Indicates that no seek is queued
     static constexpr QueuedSeek kNoQueuedSeek = {mixxx::audio::kInvalidFramePos, SEEK_NONE};
