@@ -1,9 +1,10 @@
 #pragma once
 
+#include <gtest/gtest_prod.h>
+
 #include <QAtomicInt>
 #include <QAtomicPointer>
 #include <QList>
-#include <QMutex>
 
 #include "control/controlproxy.h"
 #include "engine/controls/enginecontrol.h"
@@ -11,8 +12,8 @@
 #include "preferences/usersettings.h"
 #include "track/cue.h"
 #include "track/track_decl.h"
+#include "util/compatibility/qmutex.h"
 #include "util/parented_ptr.h"
-#include "util/qtmutex.h"
 
 #define NUM_HOT_CUES 37
 
@@ -237,8 +238,10 @@ class CueControl : public EngineControl {
     void cueGotoAndPlay(double v);
     void cueGotoAndStop(double v);
     void cuePreview(double v);
+    FRIEND_TEST(CueControlTest, SeekOnSetCueCDJ);
     void cueCDJ(double v);
     void cueDenon(double v);
+    FRIEND_TEST(CueControlTest, SeekOnSetCuePlay);
     void cuePlay(double v);
     void cueDefault(double v);
     void pause(double v);
